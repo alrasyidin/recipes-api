@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -111,6 +112,24 @@ func DeleteRecipeHandler(ctx *gin.Context) {
 	})
 }
 
+func SearchRecipeHandler(ctx *gin.Context) {
+	tag := ctx.Query("tag")
+
+	var listRecipes []Recipe
+	for i := 0; i < len(recipes); i++ {
+		found := false
+		for _, t := range recipes[i].Tags {
+			if strings.EqualFold(t, tag) {
+				found = true
+			}
+		}
+		if found {
+			listRecipes = append(listRecipes, recipes[i])
+		}
+	}
+	ctx.JSON(http.StatusOK, listRecipes)
+}
+
 func main() {
 	router := gin.Default()
 
@@ -118,6 +137,7 @@ func main() {
 	router.GET("/recipes", ListRecipeHandler)
 	router.PUT("/recipes/:id", UpdateRecipeHandler)
 	router.DELETE("/recipes/:id", DeleteRecipeHandler)
+	router.GET("/recipes/search", SearchRecipeHandler)
 
 	err := router.Run()
 	if err != nil {
