@@ -1,10 +1,27 @@
+// Recipes API
+//
+// This is a sample recipes API. You can find out more about the API at https://github.com/alrasyidin/recipes-api
+//
+// Schemes: http
+// Host: localhost:8080
+// Basepath: /
+// Version: 1.0.0
+// Contact: Hafidh Pradipta<hamstergeek38@gmail.com> https://github.com/alrasyidin
+//
+// Consumes:
+// - application/json
+//
+// Produces:
+// - application/json
+//
+// swagger:meta
 package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -26,7 +43,7 @@ var recipes []Recipe
 func init() {
 	recipes = make([]Recipe, 0)
 
-	file, err := ioutil.ReadFile("recipes.json")
+	file, err := os.ReadFile("recipes.json")
 	if err != nil {
 		log.Fatal("cannot open file")
 	}
@@ -36,6 +53,17 @@ func init() {
 	}
 }
 
+// swagger:operation post /recipes recipes newRecipe
+// Create a new recipe
+// ---
+// produces:
+// - application/json
+// responses:
+//
+//	'200':
+//	  description: Succesfull operation
+//	'400':
+//	  description: invalid input
 func NewRecipeHandler(ctx *gin.Context) {
 	var recipe Recipe
 
@@ -54,10 +82,39 @@ func NewRecipeHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, recipe)
 }
 
+// swagger:operation GET /recipes recipes listRecipes
+// Return list of recipes
+// ---
+// produces:
+// - application/json
+// responses:
+//
+//	'200':
+//	  description: Succesfull operation
 func ListRecipeHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, recipes)
 }
 
+// swagger:operation PUT /recipes/:id recipes updateRecipes
+// Update existing recipe
+// ---
+// parameters:
+//   - name: id
+//     in: path
+//     description: id of recipe
+//     required: true
+//     type: string
+//
+// produces:
+// - application/json
+// responses:
+//
+//	'200':
+//	  description: Succesfull operation
+//	'400':
+//	  description: invalid input
+//	'404':
+//	  description: invalid recipe ID
 func UpdateRecipeHandler(ctx *gin.Context) {
 	id := ctx.Params.ByName("id")
 	var recipe Recipe
@@ -88,6 +145,24 @@ func UpdateRecipeHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, recipe)
 }
 
+// swagger:operation DELETE /recipes/:id recipes deleteRecipes
+// Delete existing recipe
+// ---
+// parameters:
+//   - name: id
+//     in: path
+//     description: id of recipe
+//     required: true
+//     type: string
+//
+// produces:
+// - application/json
+// responses:
+//
+//	'200':
+//	  description: Succesfull operation
+//	'404':
+//	  description: invalid recipe ID
 func DeleteRecipeHandler(ctx *gin.Context) {
 	id := ctx.Params.ByName("id")
 
@@ -112,6 +187,22 @@ func DeleteRecipeHandler(ctx *gin.Context) {
 	})
 }
 
+// swagger:operation GET /recipes/search recipes searchRecipes
+// Return searched of recipes
+// ---
+// parameters:
+//   - name: tag
+//     in: query
+//     description: recipe tag
+//     required: true
+//     type: string
+//
+// produces:
+// - application/json
+// responses:
+//
+//	'200':
+//	  description: Succesfull operation
 func SearchRecipeHandler(ctx *gin.Context) {
 	tag := ctx.Query("tag")
 
@@ -130,11 +221,42 @@ func SearchRecipeHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, listRecipes)
 }
 
+// swagger:operation GET /recipes/{id} recipes oneRecipe
+// Get one recipe
+// ---
+// produces:
+// - application/json
+// parameters:
+//   - name: id
+//     in: path
+//     description: ID of the recipe
+//     required: true
+//     type: string
+//
+// responses:
+//
+//	'200':
+//	    description: Successful operation
+//	'404':
+//	    description: Invalid recipe ID
+func GetRecipeHandler(c *gin.Context) {
+	id := c.Param("id")
+	for i := 0; i < len(recipes); i++ {
+		if recipes[i].ID == id {
+			c.JSON(http.StatusOK, recipes[i])
+			return
+		}
+	}
+
+	c.JSON(http.StatusNotFound, gin.H{"error": "Recipe not found"})
+}
+
 func main() {
 	router := gin.Default()
 
 	router.POST("/recipes", NewRecipeHandler)
 	router.GET("/recipes", ListRecipeHandler)
+	router.GET("/recipes/:id", GetRecipeHandler)
 	router.PUT("/recipes/:id", UpdateRecipeHandler)
 	router.DELETE("/recipes/:id", DeleteRecipeHandler)
 	router.GET("/recipes/search", SearchRecipeHandler)
