@@ -18,7 +18,7 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -27,6 +27,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/xid"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 type Recipe struct {
@@ -40,17 +43,22 @@ type Recipe struct {
 
 var recipes []Recipe
 
-func init() {
-	recipes = make([]Recipe, 0)
+var ctx context.Context
+var err error
+var client *mongo.Client
 
-	file, err := os.ReadFile("recipes.json")
+func init() {
+	ctx = context.Background()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("MONGO_URI")))
 	if err != nil {
-		log.Fatal("cannot open file")
+		log.Fatal("failed connect to mongo db:", err)
 	}
-	err = json.Unmarshal([]byte(file), &recipes)
-	if err != nil {
-		log.Fatal("failed unmarhshal json recipes")
+
+	if err = client.Ping(context.TODO(), readpref.Primary()); err != nil {
+		log.Fatal(err)
 	}
+
+	log.Println("Connected to mongo db")
 }
 
 // swagger:operation post /recipes recipes newRecipe
