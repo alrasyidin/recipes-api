@@ -22,6 +22,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"recipes-api/handlers"
 	"strings"
 	"time"
 
@@ -47,6 +48,8 @@ var ctx context.Context
 var err error
 var client *mongo.Client
 
+var recipesHandler handlers.IRecipeHandler
+
 func init() {
 	ctx = context.Background()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("MONGO_URI")))
@@ -59,6 +62,9 @@ func init() {
 	}
 
 	log.Println("Connected to mongo db")
+	collection := client.Database(os.Getenv("MONGO_DATABASE")).Collection("recipes")
+
+	recipesHandler = handlers.NewRecipeHandler(ctx, collection)
 }
 
 // swagger:operation post /recipes recipes newRecipe
@@ -262,10 +268,10 @@ func GetRecipeHandler(c *gin.Context) {
 func main() {
 	router := gin.Default()
 
-	router.POST("/recipes", NewRecipeHandler)
-	router.GET("/recipes", ListRecipeHandler)
-	router.GET("/recipes/:id", GetRecipeHandler)
-	router.PUT("/recipes/:id", UpdateRecipeHandler)
+	router.POST("/recipes", recipesHandler.NewRecipeHandler)
+	router.GET("/recipes", recipesHandler.ListRecipeHandler)
+	// router.GET("/recipes/:id", recipesHandler.GetRecipeHandler)
+	router.PUT("/recipes/:id", recipesHandler.UpdateRecipeHandler)
 	router.DELETE("/recipes/:id", DeleteRecipeHandler)
 	router.GET("/recipes/search", SearchRecipeHandler)
 
